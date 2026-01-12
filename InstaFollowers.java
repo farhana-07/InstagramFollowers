@@ -13,11 +13,11 @@ public class InstaFollowers
             
            JSONParser parser = new JSONParser();
 
-           Object followers = parser.parse(new FileReader("C:\\Users\\farha\\OneDrive\\Documents\\SideProjects\\Instagram\\Info\\connections\\followers_and_following\\followers_1.json"));
+           JSONArray followers = (JSONArray)parser.parse(new FileReader("C:\\Users\\farha\\OneDrive\\Documents\\SideProjects\\Instagram\\Info\\connections\\followers_and_following\\followers_1.json"));
            Object following = parser.parse(new FileReader("C:\\Users\\farha\\OneDrive\\Documents\\SideProjects\\Instagram\\Info\\connections\\followers_and_following\\following.json"));
 
-           HashSet<String> userNamesFollowers = getUsers(unwrap(followers));
-           HashSet<String> userNamesFollowing = getUsers(unwrap(following));
+           HashSet<String> userNamesFollowers = getUsersFR(followers);
+           HashSet<String> userNamesFollowing = getUsersFG(unwrap(following));
            
            HashSet<String> not = new HashSet<>(); 
            HashSet<String> fans = new HashSet<>();
@@ -42,6 +42,9 @@ public class InstaFollowers
                 }
             }
             System.out.println(fans);
+            writeToFile("C:\\Users\\farha\\OneDrive\\Documents\\SideProjects\\Instagram\\Result\\not_following_me.txt", not);
+            writeToFile("C:\\Users\\farha\\OneDrive\\Documents\\SideProjects\\Instagram\\Result\\mutuals.txt", mutuals);
+            writeToFile("C:\\Users\\farha\\OneDrive\\Documents\\SideProjects\\Instagram\\Result\\myfans.txt", fans);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -50,8 +53,7 @@ public class InstaFollowers
         ;
     
     }
-
-    public static HashSet<String> getUsers(JSONArray f) 
+    public static HashSet<String> getUsersFR(JSONArray f) 
     {
         HashSet<String> users = new HashSet<String>();
         for(JSONObject follower: (Iterable<JSONObject>) f)
@@ -66,41 +68,35 @@ public class InstaFollowers
         return users;
     }
 
+    public static HashSet<String> getUsersFG(JSONArray f) 
+    {
+        HashSet<String> users = new HashSet<String>();
+        for(JSONObject follower: (Iterable<JSONObject>) f)
+        {
+            String s = (String) follower.get("title");
+            users.add(s);
+        }
+        return users;
+    }
+
     private static JSONArray unwrap(Object root) 
     {
-        if (root instanceof JSONArray) 
+        return (JSONArray) ((JSONObject) root).get("relationships_following");
+    }
+
+    public static void writeToFile(String filename, HashSet<String> content) 
+    {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) 
         {
-            return (JSONArray) root;
-        }
-
-        if (root instanceof JSONObject) 
+            for(String line : content) 
+            {
+                writer.write(line);
+                writer.newLine();
+            }
+        } 
+        catch (IOException e) 
         {
-            JSONObject jo = (JSONObject) root;
-
-            // Try common keys first (harmless if they don't exist)
-            String[] commonKeys = {
-                "relationships_followers",
-                "relationships_following",
-                "followers",
-                "following"
-            };
-
-            for (String key : commonKeys) 
-            {
-                Object val = jo.get(key);
-                if (val instanceof JSONArray) return (JSONArray) val;
-            }
-
-            // Fallback: return the first JSONArray value we find
-            for (Object keyObj : jo.keySet()) 
-            {
-                Object val = jo.get(keyObj);
-                if (val instanceof JSONArray) return (JSONArray) val;
-            }
-
-            throw new IllegalArgumentException("JSONObject root did not contain a JSONArray. Keys: " + jo.keySet());
+            e.printStackTrace();
         }
-
-        throw new IllegalArgumentException("Unexpected JSON root type: " + root.getClass());
     }
 }
